@@ -1,0 +1,15 @@
+# Node / Cloudflare Worker
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+*.log
+
+# Secrets / local config
+.env
+
+# Python variant (python/)
+python/__pycache__/
+python/**/__pycache__/
+python/.venv/
+python/*.egg-info/

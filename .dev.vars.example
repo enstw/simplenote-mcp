@@ -1,0 +1,10 @@
+# Local secrets for `wrangler dev` (copy to .dev.vars — gitignored).
+# In production set these with: wrangler secret put <NAME>
+
+# Simperium API token for your Simplenote account.
+# Get one from the sn CLI:  cd python && uv run python -m simplenote_mcp ...  OR
+#   cd ../simplenote-sync && sn auth login && sn auth token
+SIMPLENOTE_TOKEN=
+
+# Shared password that gates the OAuth login (you choose this).
+ACCESS_PASSWORD=

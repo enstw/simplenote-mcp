@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sandbox Findings — corrected report</title>
+<style>
+  :root{
+    --ink:#16191c; --paper:#eceff1; --panel:#f6f8f9; --line:#c9d1d6;
+    --accent:#1f5e7a; --accent-soft:#dde9ee; --verified:#2c7a5b;
+    --inferred:#9a6b1e; --warn:#b3471f; --mute:#6a7479;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Charter","Iowan Old Style",Georgia,serif; line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:780px; margin:0 auto; padding:60px 28px 96px;}
+  .eyebrow{
+    font-family:var(--mono); font-size:.7rem; letter-spacing:.24em;
+    text-transform:uppercase; color:var(--accent); margin:0 0 14px;
+  }
+  h1{font-size:2.35rem; line-height:1.08; margin:0 0 10px; font-weight:600; letter-spacing:-.01em;}
+  .lede{font-size:1.06rem; color:#444b50; margin:0 0 18px; max-width:62ch;}
+  .meta{
+    font-family:var(--mono); font-size:.74rem; color:var(--mute);
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    padding:10px 0; margin:0 0 8px; display:flex; flex-wrap:wrap; gap:6px 22px;
+  }
+  h2{
+    font-size:1.06rem; margin:46px 0 14px; padding-bottom:8px;
+    border-bottom:1px solid var(--line); font-weight:600;
+    display:flex; align-items:baseline; gap:12px;
+  }
+  h2 .n{font-family:var(--mono); font-size:.78rem; color:var(--accent); flex:none;}
+  p{margin:0 0 14px;}
+  ul{margin:0 0 14px; padding-left:0; list-style:none;}
+  li{padding:6px 0 6px 22px; position:relative; border-bottom:1px dotted var(--line);}
+  li:last-child{border-bottom:none;}
+  li::before{content:"\2192"; position:absolute; left:0; color:var(--accent);}
+  code{font-family:var(--mono); font-size:.84em; background:var(--accent-soft);
+    padding:1px 6px; border-radius:3px; word-break:break-word;}
+  table{width:100%; border-collapse:collapse; margin:0 0 14px; font-size:.93rem;}
+  th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top;}
+  th{font-family:var(--mono); font-size:.7rem; letter-spacing:.1em;
+     text-transform:uppercase; color:var(--accent);}
+  td:first-child{font-weight:600;}
+  .tag{font-family:var(--mono); font-size:.66rem; letter-spacing:.06em;
+    text-transform:uppercase; padding:2px 8px; border-radius:20px; white-space:nowrap;}
+  .tag.v{background:var(--verified); color:#fff;}
+  .tag.i{background:#f0e4cc; color:var(--inferred);}
+  .tag.u{background:#eccfc4; color:var(--warn);}
+  .note{border-left:3px solid var(--warn); background:#f7e9e2;
+    padding:12px 16px; margin:0 0 14px; font-size:.94rem;}
+  .key{background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:18px 20px; margin:0 0 14px;}
+  .key h3{margin:0 0 8px; font-size:.82rem; font-family:var(--mono);
+    letter-spacing:.08em; text-transform:uppercase; color:var(--accent); font-weight:600;}
+  .legend{font-family:var(--mono); font-size:.72rem; color:var(--mute);
+    display:flex; gap:16px; flex-wrap:wrap; margin:0 0 18px;}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .dot{width:9px; height:9px; border-radius:50%;}
+  footer{margin-top:56px; font-size:.78rem; color:var(--mute); font-family:var(--mono);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Project Capability Report &middot; v3 (supersedes v1)</p>
+  <h1>Sandbox findings</h1>
+  <p class="lede">A full, corrected snapshot of the environment backing this project. Every line is re-verified by live execution each revision &mdash; because the VM is torn down between conversations, nothing here is recalled, it is re-measured.</p>
+  <div class="meta">
+    <span>conversation: claude_chat_01Cn5fxLc9rfRynN8zFMD2T4</span>
+    <span>boot_id: 196ca8e1&hellip;8c2adb</span>
+    <span>kernel: Linux 6.18.5 x86_64</span>
+  </div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--verified)"></span>Verified live this session</span>
+    <span><span class="dot" style="background:var(--inferred)"></span>Inferred / partial</span>
+    <span><span class="dot" style="background:var(--warn)"></span>Not verifiable from inside</span>
+  </div>
+
+  <div class="key">
+    <h3>Headline correction</h3>
+    <p style="margin:0;">v1 of this report inferred that <code>/mnt/user-data/outputs</code> was durable <em>"across instances and devices."</em> An unconfounded two-conversation test (same project) shows that is wrong. <strong>The outputs mount is keyed per-conversation.</strong> A file written in one conversation is not visible in another, even within the same project. It is durable across VM teardowns <em>within</em> a single conversation; it is <em>not</em> a cross-conversation channel.</p>
+  </div>
+
+  <h2><span class="n">01</span> Cross-conversation persistence test <span class="tag v">verified</span></h2>
+  <p>Two conversations in the same project. Conversation A wrote a probe file to its <code>outputs</code> and recorded a token + its <code>boot_id</code>. Conversation B (this one) checked every persistent mount for that file, reading from disk only &mdash; not from chat memory.</p>
+  <table>
+    <tr><th>Field</th><th>Writer (conv A)</th><th>Reader (conv B, here)</th></tr>
+    <tr><td>conversation id</td><td><code>&hellip;013mTmf&hellip;</code></td><td><code>&hellip;01Cn5fx&hellip;</code></td></tr>
+    <tr><td>boot_id</td><td><code>40387d42&hellip;</code></td><td><code>196ca8e1&hellip;</code></td></tr>
+    <tr><td>probe token in <code>outputs</code></td><td>written</td><td><strong>absent</strong></td></tr>
+    <tr><td>probe in <code>/mnt/project</code></td><td>&mdash;</td><td><strong>absent</strong></td></tr>
+  </table>
+  <p>The token never appeared on any durable mount in conversation B. The only way its v2 probe reached this session at all was as a manual chat upload (landing read-only in <code>uploads</code>). Different <code>boot_id</code> confirms a genuinely separate VM, ruling out "same box still alive." <strong>Conclusion: <code>outputs</code> is per-conversation, not per-project.</strong></p>
+  <p>Mechanism, straight from <code>/proc/mounts</code>: every filestore mount&mdash;<code>outputs</code>, <code>uploads</code>, <code>tool_results</code>, <code>transcripts</code>&mdash;carries the <em>same</em> conversation id in its rclone source string, and that id changes with the conversation. The namespace is the conversation.</p>
+
+  <h2><span class="n">02</span> Persistence model <span class="tag v">verified</span></h2>
+  <ul>
+    <li><strong>Durable, per-conversation:</strong> <code>/mnt/user-data/outputs</code> &mdash; the only mount that both accepts writes and keeps them across a teardown. Scoped to the conversation that wrote them.</li>
+    <li><strong>Cross-conversation channel:</strong> the <strong>project store</strong> &mdash; files explicitly added to the project appear at <code>/mnt/project</code> (read-only copy) in every conversation. This is what actually crosses conversations. I cannot write to it; only the user adds files.</li>
+    <li><strong>Ephemeral:</strong> the VM itself &mdash; root <code>ext4</code>, <code>/home/claude</code>, <code>/tmp</code>, <code>/dev/shm</code>. Reset on teardown. Installed packages and scratch files do not carry over.</li>
+  </ul>
+  <div class="note"><strong>Still open (inferred, not yet proven by us):</strong> that <code>outputs</code> survives a teardown <em>within the same conversation</em>. We proved conversations are isolated from each other; we have not yet forced a reset inside one conversation and re-read the token. Until we do, within-conversation durability rests on the mount being a remote filestore, not on a direct test.</div>
+
+  <h2><span class="n">03</span> Complete mount map <span class="tag v">verified</span></h2>
+  <p>Pulled from the kernel and cross-checked with live write tests.</p>
+  <table>
+    <tr><th>Mount</th><th>Backing</th><th>Write</th><th>Lifetime</th></tr>
+    <tr><td>/mnt/user-data/outputs</td><td>rclone filestore (fuse)</td><td>r/w</td><td>Durable &middot; per-conversation</td></tr>
+    <tr><td>/mnt/user-data/uploads</td><td>rclone filestore (fuse)</td><td>read-only</td><td>Durable &middot; per-conversation</td></tr>
+    <tr><td>/mnt/user-data/tool_results</td><td>rclone filestore (fuse)</td><td>read-only</td><td>Durable &middot; per-conversation</td></tr>
+    <tr><td>/mnt/transcripts</td><td>rclone filestore (fuse)</td><td>read-only</td><td>Durable &middot; per-conversation</td></tr>
+    <tr><td>/mnt/project</td><td>on root ext4 (RO copy of project files)</td><td>r/w local, not saved back</td><td>Source is cross-conversation; local copy ephemeral</td></tr>
+    <tr><td>/ (root)</td><td>/dev/vda &mdash; ext4</td><td>r/w</td><td>Ephemeral</td></tr>
+    <tr><td>/home/claude, /tmp</td><td>on root ext4</td><td>r/w</td><td>Ephemeral</td></tr>
+    <tr><td>/dev/shm</td><td>tmpfs (RAM)</td><td>r/w</td><td>Ephemeral (memory)</td></tr>
+    <tr><td>/mnt/skills/public</td><td>/dev/vdc &mdash; squashfs</td><td>read-only</td><td>Image (RO)</td></tr>
+    <tr><td>/mnt/skills/examples</td><td>/dev/vdd &mdash; squashfs</td><td>read-only</td><td>Image (RO)</td></tr>
+    <tr><td>/opt/rclone</td><td>/dev/vdb &mdash; squashfs</td><td>read-only</td><td>Image (RO)</td></tr>
+    <tr><td>/mnt/skills/private</td><td>&mdash;</td><td>&mdash;</td><td>Not mounted here</td></tr>
+  </table>
+  <p>Three layers: (1) a durable <strong>per-conversation</strong> rclone/FUSE filestore &mdash; only <code>outputs</code> is writable; (2) an <strong>ephemeral VM</strong> (ext4 + tmpfs) for all scratch, including the writable-but-discarded project copy; (3) read-only <strong>squashfs images</strong> for skills and tooling.</p>
+
+  <h2><span class="n">04</span> VM specifications <span class="tag v">verified</span></h2>
+  <table>
+    <tr><th>Resource</th><th>Observed (this session)</th></tr>
+    <tr><td>Identity</td><td><code>uid=0(root)</code> &mdash; full root in-sandbox</td></tr>
+    <tr><td>Kernel / arch</td><td>Linux 6.18.5, x86_64</td></tr>
+    <tr><td>CPU</td><td>1 core &mdash; Intel Xeon @ 2.80GHz</td></tr>
+    <tr><td>Memory</td><td>3.9 GB RAM, no swap</td></tr>
+    <tr><td>Root disk</td><td>252 GB nominal; ~10 GB free</td></tr>
+    <tr><td>Outputs store</td><td>reports ~1 PB (not a real quota)</td></tr>
+    <tr><td>Host</td><td>Anthropic-provided sandbox (not user hardware)</td></tr>
+  </table>
+  <div class="note">Per-instance figures; CPU model and exact specs vary across sessions (v1 saw a 2.10GHz part, this session 2.80GHz). Measured from inside the box only.</div>
+
+  <h2><span class="n">05</span> Tools &amp; toolchain <span class="tag v">verified</span></h2>
+  <ul>
+    <li><strong>bash</strong> &mdash; root shell; <code>apt</code> works without <code>sudo</code>.</li>
+    <li><strong>create / view / edit / present files</strong> &mdash; author, revise, and surface deliverables.</li>
+    <li><strong>web search &amp; fetch</strong> &mdash; current info from an allow-listed network.</li>
+    <li><strong>document skills</strong> &mdash; guided builders for Word, PowerPoint, Excel, PDF.</li>
+    <li>Python 3.12.3 (<code>pip install &lt;pkg&gt; --break-system-packages</code>); Node.js v22.x; <code>apt-get</code> as root.</li>
+  </ul>
+  <div class="note">Network is restricted to an allow-list (Ubuntu archive, PyPI, npm, a few others). Arbitrary domains are blocked &mdash; confirmed by deny behavior.</div>
+
+  <h2><span class="n">06</span> Boundary model <span class="tag v">verified</span> <span class="tag u">+ host caveat</span></h2>
+  <p>This is an isolated, disposable VM, not your machine. There is no user filesystem here to protect, so reads aren't gated by per-read permission prompts the way the Claude Code CLI gates them on real hardware. The real boundaries are the <strong>mounts</strong> and the <strong>network</strong>: read-only filestore inputs, an allow-listed egress, and a per-conversation namespace on the durable store.</p>
+  <div class="note"><strong>Not verifiable from inside:</strong> host-level isolation between conversations/tenants, and the teardown guarantee itself. The per-conversation id in the mount source is <em>consistent with</em> isolated namespaces, but isolation at the host is Anthropic's to certify &mdash; their documentation is authoritative.</div>
+
+  <footer>v3 &middot; generated in-session &middot; all specs re-verified by live execution &middot; supersedes v1 in full</footer>
+</div>
+</body>
+</html>

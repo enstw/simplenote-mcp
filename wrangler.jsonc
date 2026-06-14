@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "simplenote-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-05-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // McpAgent stores each MCP session in a Durable Object. SQLite-backed DOs are
+  // available on the Workers *free* plan, so this stays free.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SimplenoteMCP"] }],
+  "durable_objects": {
+    "bindings": [{ "name": "MCP_OBJECT", "class_name": "SimplenoteMCP" }]
+  },
+
+  // workers-oauth-provider persists OAuth grants/tokens here.
+  // Create with: npx wrangler kv namespace create OAUTH_KV  → paste the id below.
+  "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "REPLACE_WITH_KV_ID" }],
+
+  // Non-secret config. SIMPLENOTE_TOKEN and ACCESS_PASSWORD are set as secrets
+  // (wrangler secret put …), never here.
+  "vars": { "SIMPLENOTE_PROJECT_TAG": "claude-project-default" },
+
+  "observability": { "enabled": true }
+}
