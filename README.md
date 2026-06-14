@@ -74,17 +74,20 @@ python -c "from simplenote import Simplenote; print(Simplenote('EMAIL', 'PASSWOR
 ```bash
 pnpm install
 
-# 1. Create the KV namespace the OAuth provider uses, then paste the printed id
+# 1. Log in to Cloudflare (opens a browser):
+pnpm exec wrangler login
+
+# 2. Create the KV namespace the OAuth provider uses, then paste the printed id
 #    into wrangler.jsonc (kv_namespaces[0].id).
 pnpm exec wrangler kv namespace create OAUTH_KV
 
-# 2. (optional) set your project tag in wrangler.jsonc → vars.SIMPLENOTE_PROJECT_TAG
+# 3. (optional) set your project tag in wrangler.jsonc → vars.SIMPLENOTE_PROJECT_TAG
 
-# 3. Set secrets (not in any file):
+# 4. Set secrets (not in any file):
 pnpm exec wrangler secret put SIMPLENOTE_TOKEN     # your Simperium token
 pnpm exec wrangler secret put ACCESS_PASSWORD      # a password you choose
 
-# 4. Ship it:
+# 5. Ship it:
 pnpm run deploy
 ```
 
@@ -93,7 +96,12 @@ You'll get `https://simplenote-mcp.<your-subdomain>.workers.dev`.
 **Connect in Claude.ai** (Max/Team/Enterprise): Settings → Connectors → *Add
 custom connector* → URL `https://simplenote-mcp.<subdomain>.workers.dev/mcp`.
 Claude runs the OAuth flow; enter your `ACCESS_PASSWORD` on the login screen.
-Then add [`BOOTSTRAP.md`](./BOOTSTRAP.md) to the project.
+
+Finally, **upload [`BOOTSTRAP.md`](./BOOTSTRAP.md) into the project's files**
+(open your project → *Add files*) so every conversation picks up the protocol.
+Then, in a chat, ask Claude to *load my project files from Simplenote* to
+rehydrate at the start, and *save these back to Simplenote* to persist before
+you finish.
 
 ## Local development
 
