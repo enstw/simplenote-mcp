@@ -6,8 +6,8 @@ Cloudflare Workers.
 
 ## The problem
 
-A Claude.ai project conversation has no writable storage that survives across
-conversations (measured live in [`FINDINGS_v3.html`](./FINDINGS_v3.html)):
+A Claude.ai project conversation has **no writable storage that survives across
+conversations** — confirmed by probing the project sandbox from inside it:
 
 | Surface | Agent can write? | Crosses conversations? |
 |---|---|---|
@@ -15,7 +15,15 @@ conversations (measured live in [`FINDINGS_v3.html`](./FINDINGS_v3.html)):
 | `/mnt/user-data/outputs` | yes | **no — keyed per conversation** |
 | VM (`/home`, `/tmp`) | yes | no (ephemeral) |
 
-This connector adds the missing **writable + cross-conversation** surface: each
+`/mnt/user-data/outputs` is durable *within* a conversation, but its storage
+namespace is the conversation id — a file written in one conversation is
+invisible in the next, even inside the same project. The only cross-conversation
+surface, `/mnt/project`, is read-only to the agent. So there is no
+writable **and** cross-conversation surface — and because the sandbox's network
+egress is allow-listed, a script running inside it can't reach Simplenote
+directly either.
+
+This connector supplies the missing surface from *outside* the sandbox: each
 conversation pulls its files at the start and pushes changes back before ending.
 The pull→work→push protocol the in-conversation agent follows lives in
 [`BOOTSTRAP.md`](./BOOTSTRAP.md) — add that file to your Claude project.
@@ -30,10 +38,10 @@ Durable Objects — which `McpAgent` uses for session state — are now on the f
 plan, so the whole thing runs for $0. (The sandbox's allow-listed egress can't
 reach Simplenote, so the connector has to be remote anyway.)
 
-The Simplenote/Simperium client is a TypeScript port of the proven
-[`../simplenote-sync`](../simplenote-sync) `sn` CLI (token auth, the
-first-line-heading→filename convention, version-aware writes, `markdown` system
-tag), so notes round-trip with the CLI and the mobile app.
+The Simplenote/Simperium client is a faithful TypeScript port of the public
+[`simplenote.py`](https://github.com/mrtazz/simplenote.py) library (token auth,
+the first-line-heading→filename convention, version-aware writes, `markdown`
+system tag), so notes round-trip with the Simplenote apps.
 
 ## Model
 
@@ -55,7 +63,13 @@ OAuth just gates access to you with a shared password.
 ## Deploy
 
 Prereqs: a free Cloudflare account, [pnpm](https://pnpm.io) + Node, and a
-Simplenote API token (`cd ../simplenote-sync && sn auth login && sn auth token`).
+Simplenote API token. Mint one from your Simplenote email/password with the
+public [`simplenote`](https://pypi.org/project/simplenote/) library:
+
+```bash
+pip install simplenote
+python -c "from simplenote import Simplenote; print(Simplenote('EMAIL', 'PASSWORD').get_token())"
+```
 
 ```bash
 pnpm install

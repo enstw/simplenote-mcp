@@ -35,25 +35,27 @@ pnpm dev                                    # local Worker (wrangler dev)
 pnpm run deploy                             # real deploy (needs Cloudflare login)
 ```
 
-## The problem it solves (from `FINDINGS_v3.html`)
+## The problem it solves
 
 A project conversation has no writable storage that survives across
-conversations: `/mnt/project` is cross-conversation but read-only to the agent;
-`/mnt/user-data/outputs` is writable but per-conversation; the VM is ephemeral.
-This connector bridges to Simplenote as the durable, cross-conversation store.
-The in-conversation agent's pull→work→push protocol is `BOOTSTRAP.md` (the file
-the user adds to the project store).
+conversations (measured by probing the sandbox from inside): `/mnt/project` is
+cross-conversation but read-only to the agent; `/mnt/user-data/outputs` is
+writable but per-conversation (its storage namespace is the conversation id);
+the VM is ephemeral. This connector bridges to Simplenote as the durable,
+cross-conversation store. The in-conversation agent's pull→work→push protocol is
+`BOOTSTRAP.md` (the file the user adds to the project store). The README's "The
+problem" section is the canonical write-up.
 
 ## Two hard constraints
 
 1. **Must be remote, not in-sandbox.** The project sandbox has allow-listed
-   egress (`FINDINGS_v3.html` §05) — `api.simperium.com` is unreachable from
+   egress — `api.simperium.com` is unreachable from
    inside. Data crosses only as MCP tool results, which the agent writes into
    `/mnt/user-data/outputs`. The connector therefore runs on Cloudflare, outside
    the sandbox.
 2. **No official Simplenote API.** It runs on **Simperium**. `src/simperium.ts`
    is a direct port of the `simplenote.py` library (the `simplenote` PyPI
-   package, also the engine of `../simplenote-sync`): app id `chalk-bump-f49`,
+   package): app id `chalk-bump-f49`,
    bucket `note`, header `X-Simperium-Token`, `/index?data=true` with `mark`
    pagination, `/i/{id}/v/{version}?response=1` for versioned writes, uuid-hex
    keys for new notes, client-side tag filtering.
@@ -119,6 +121,5 @@ deployed Worker + a token + Claude registration).
 
 - `src/*.ts` — the Worker
 - `BOOTSTRAP.md` — the doc the user adds to the Claude project
-- `FINDINGS_v3.html` — the measured project-sandbox storage/network model
-- `../simplenote-sync/sn.py` & the `simplenote` package — the porting reference
+- the `simplenote` PyPI package / [`simplenote.py`](https://github.com/mrtazz/simplenote.py) — the Simperium porting reference
 - `python/` — the local stdio variant

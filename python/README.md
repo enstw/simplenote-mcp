@@ -10,8 +10,8 @@ environment.
 > top-level `README.md` and `CLAUDE.md`.
 
 Both variants share the same model (one note per file, scoped by a
-`claude-project-<id>` tag) and the same Simplenote integration patterns from
-[`../../simplenote-sync`](../../simplenote-sync).
+`claude-project-<id>` tag) and the same Simplenote integration patterns as the
+public [`simplenote.py`](https://github.com/mrtazz/simplenote.py) library.
 
 ## Run
 
@@ -23,7 +23,8 @@ SIMPLENOTE_TOKEN=… SIMPLENOTE_PROJECT_TAG=claude-project-x \
   uv run simplenote-mcp --transport stdio
 ```
 
-Get a `SIMPLENOTE_TOKEN` with the `sn` CLI: `sn auth login` then `sn auth token`.
+Mint a `SIMPLENOTE_TOKEN` from your email/password with the public `simplenote`
+library: `python -c "from simplenote import Simplenote; print(Simplenote('EMAIL','PASSWORD').get_token())"`.
 
 ## Tools
 

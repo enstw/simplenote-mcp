@@ -8,6 +8,9 @@ dist/
 # Secrets / local config
 .env
 
+# Local-only: sandbox capability report (kept on disk, not published)
+FINDINGS_v3.html
+
 # Python variant (python/)
 python/__pycache__/
 python/**/__pycache__/
