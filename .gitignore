@@ -7,6 +7,7 @@ dist/
 
 # Secrets / local config
 .env
+.deploy.env
 
 # Local-only: sandbox capability report (kept on disk, not published)
 FINDINGS_v3.html
