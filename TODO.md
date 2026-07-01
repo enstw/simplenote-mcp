@@ -2,6 +2,17 @@
 
 Open follow-ups not yet addressed. Remove items as they land.
 
+## Rotate the tokens exposed during the 2026-07-01 deploy
+
+Both `CLOUDFLARE_API_TOKEN` and `SIMPLENOTE_TOKEN` were pasted into an AI chat
+transcript during the deploy, so treat them as compromised and rotate:
+
+- **Cloudflare API token** — delete it (dashboard → My Profile → API Tokens),
+  mint a fresh one, update `.deploy.env`. Deploy-only, so rotating breaks nothing.
+- **Simplenote/Simperium token** — re-mint, then push the new value:
+  `printf '%s' NEWTOKEN | pnpm exec wrangler secret put SIMPLENOTE_TOKEN`. This is
+  the live store credential, so higher priority.
+
 ## README — token-acquisition wording (Deploy section)
 
 The Deploy prereqs frame the Simperium token as something you "mint from your

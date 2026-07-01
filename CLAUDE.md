@@ -114,8 +114,12 @@ custom connectors (Max/Team/Enterprise).
 `tsc --noEmit` is clean; `pnpm test` (vitest) covers slugify parity, path collisions, and a
 full create/list/read/update/delete round-trip against an in-memory Simperium;
 `wrangler deploy --dry-run` bundles with all bindings resolving (~408 KiB gzip).
-Not yet exercised live: real Simperium calls and the OAuth handshake (need a
-deployed Worker + a token + Claude registration).
+
+**Deployed live 2026-07-01** at `https://simplenote-mcp.enstw.workers.dev`.
+Post-deploy checks pass: `GET /` → 200, unauthenticated `GET /mcp` → 401, OAuth
+metadata → 200, and `SIMPLENOTE_TOKEN` authenticates against Simperium (index →
+200). Still pending: the end-to-end Claude.ai OAuth handshake — adding the custom
+connector in the Claude.ai UI and entering the access password (a manual step).
 
 ## Key files
 
