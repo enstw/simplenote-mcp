@@ -22,16 +22,23 @@ instructions just point to it.
 
 ```
 This project persists files across conversations using the Simplenote connector
-(tools: list_files, read_file, write_file, delete_file). Simplenote is the durable
-store; the sandbox is per-conversation and disposable.
+(tools: list_files, read_file, write_file, delete_file — deferred; load them with
+tool_search before use). Simplenote is the durable store; the sandbox is
+per-conversation and disposable.
 
-- Start of every conversation: call list_files to see persisted state, then
-  read_file only the files this task needs.
+- When a task plausibly touches persisted state, call list_files to see what
+  exists, then read_file only the files that task needs. Don't do this on every
+  message — loading the tools and reading files costs a tool_search round trip and
+  context tokens, so skip it for unrelated tasks.
 - Before finishing, or whenever I say "save"/"persist": write_file every new or
-  changed file back, and delete_file anything I want removed. Briefly confirm
-  what you persisted.
-- The first-line heading owns the path (path = slug of the heading); keep them
-  consistent. Text/Markdown only. Never write tokens or credentials into a note.
+  changed file back, and delete_file anything I want removed. Briefly confirm what
+  you persisted.
+- write_file overwrites the entire note (no partial update). If you hold only part
+  of a file's content, read_file and merge before writing the full result.
+- Set path explicitly and reuse the exact same path when overwriting. The
+  connector also derives a path from the first-line heading, so an edited heading
+  can silently rename/duplicate a note — don't rely on that. Text/Markdown only.
+  Never write tokens or credentials into a note.
 
 The full protocol is in BOOTSTRAP.md in this project's files.
 ```

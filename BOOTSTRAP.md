@@ -9,50 +9,67 @@ files alive across conversations using the **Simplenote connector**.
 In this project, `/mnt/user-data/outputs` is writable but **per-conversation** —
 nothing you write there is visible in the next conversation. The only durable,
 cross-conversation store you can write to is **Simplenote, via the connector
-tools**. So: pull state in at the start, push changes back before you finish.
+tools**. So: pull state in when the task needs it, push changes back before you
+finish.
 
 ## Prerequisite
 
-The **Simplenote connector** must be attached to this project. You have it if
-these tools exist: `list_files`, `read_file`, `write_file`, `delete_file`.
-If they are missing, tell the user: *"Add the Simplenote custom connector to
-this project, then we can persist files."* and stop.
+The **Simplenote connector** must be attached to this project. The tools are
+deferred — you won't see them until you load them with `tool_search` (search
+e.g. "list_files persisted files"). Once loaded you have `list_files`,
+`read_file`, `write_file`, `delete_file`. If searching turns up nothing, tell
+the user: *"Add the Simplenote custom connector to this project, then we can
+persist files."* and stop.
 
 ## Protocol
 
-**1 — Rehydrate (do this at the start of a conversation):**
-- Call `list_files` to see what persisted state exists.
-- For each file you need, call `read_file(path)` and write it into the working
-  area, e.g. `/mnt/user-data/outputs/<path>`. Be selective — only pull what the
-  task needs (each pulled file costs context tokens).
+**1 — Rehydrate (when the task plausibly touches persisted state):**
+- Don't do this reflexively on every message. Loading the tools costs a
+  `tool_search` round trip and each `read_file` costs context tokens. For a
+  task unrelated to stored files, skip it.
+- When it is relevant, call `list_files` to see what exists, then `read_file`
+  **only** the files this task needs, writing each into the working area
+  (e.g. `/mnt/user-data/outputs/<path>`).
 
 **2 — Work:** edit files in the sandbox as usual.
 
 **3 — Persist (before ending, or whenever the user says "save"/"persist"):**
-- For every new or changed file, call `write_file(path, content)` with the
-  current content.
+- For every new or changed file, call `write_file(path, content)`.
 - For anything the user wants removed, call `delete_file(path)`.
 - Briefly confirm to the user what you persisted.
 
 ## Rules
 
-- **The first-line heading defines the path.** A file starting with
-  `# Design Notes` is `Design-Notes.md`. Keep the heading and the `path`
-  consistent; changing the heading renames the file.
+- **`path` is authoritative — set it explicitly and keep it stable.** The
+  connector also *derives* a path by slugifying the first-line heading, so an
+  edited heading can silently rename (and duplicate) a note. Don't rely on that
+  coupling. Pass the `path` you intend and reuse the exact same string when you
+  overwrite.
+  - Observed slug transform (reverse-engineered from one file, so treat as a
+    guide, not a contract): lowercase; drop non-separator punctuation with no
+    replacement (`pi.py` → `pipy`, `10,000` → `10000`); collapse whitespace and
+    any dash (`-`, `–`, `—`) to a single `-`; append `.md`. Heading
+    `# pi.py — print 10,000 digits of pi` → `pipy-print-10000-digits-of-pi.md`.
+- **`write_file` overwrites the whole note.** There is no partial update. If you
+  only hold part of a file's content, `read_file` first and merge, then write
+  the full result — this applies even to a single file, not just concurrent
+  edits from two conversations (last-writer-wins).
 - **Text / Markdown only.** Simplenote notes are plain text — no binaries,
   images, or attachments.
 - **Scope is automatic.** Every file is tagged to this project; you only ever
   see and write this project's files.
-- **Last-writer-wins.** If two conversations might have touched the same file,
-  `read_file` first and merge before you `write_file`.
 - **Never paste tokens or credentials** into a note, a file, or the chat. Auth
   is handled by the connector, not by you.
 
 ## Tool reference
 
+Signatures below are **illustrative pseudocode**; the real tools are MCP tools
+whose exact names and parameter names come from `tool_search`. Don't type these
+literally.
+
 | Tool | Use |
 |---|---|
-| `list_files()` | What's persisted? Returns paths + versions. |
+| `list_files()` | What's persisted? Returns paths, versions, modified times, tags. |
 | `read_file(path)` | Pull one file's content. |
-| `write_file(path, content)` | Create/overwrite a file (persist it). |
+| `write_file(path, content)` | Create/overwrite a file (full-content, persist it). |
 | `delete_file(path)` | Trash a file. |
