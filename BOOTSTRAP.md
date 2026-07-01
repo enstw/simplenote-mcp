@@ -38,6 +38,25 @@ e.g. "list_files persisted files"). Once loaded you have `list_files`,
 the user: *"Add the Simplenote custom connector to this project, then we can
 persist files."* and stop.
 
+## Project key (scope) — read this first
+
+One connector serves the whole account, but Claude.ai does **not** tell the
+connector which project you're in. So each note is scoped by a **project key**:
+the connector tags it `claude-project-<key>`, isolating this project's files
+from every other project on the account. There is no automatic detection —
+**you must pass the same `project` key on every tool call** (`list_files`,
+`read_file`, `write_file`, `delete_file`), or the call errors. Omitting it does
+**not** fall back to a shared store; it fails.
+
+> **This project's key: `REPLACE-ME`**
+>
+> Set this once to a unique slug (lowercase letters, digits, `-`, `_`, `.`;
+> e.g. `research`, `book-draft`). Keep it **stable** — changing it points you at
+> a different, empty store. If it still says `REPLACE-ME`, ask the user to pick
+> a key for this project before persisting anything.
+
+Pass this exact key as the `project` argument on every call below.
+
 ## Protocol
 
 **1 — Rehydrate (when the task plausibly touches persisted state):**
@@ -93,8 +112,11 @@ persist files."* and stop.
   edits from two conversations (last-writer-wins).
 - **Text / Markdown only.** Simplenote notes are plain text — no binaries,
   images, or attachments.
-- **Scope is automatic.** Every file is tagged to this project; you only ever
-  see and write this project's files.
+- **Scope is by project key, and it's on you.** Pass this project's `project`
+  key (see *Project key* above) on every call. It tags each file
+  `claude-project-<key>` so you only see and write this project's files — but
+  only if you pass it. A missing key errors; a wrong key silently reads/writes a
+  different project's store.
 - **Never paste tokens or credentials** into a note, a file, or the chat. Auth
   is handled by the connector, not by you.
 
@@ -104,9 +126,12 @@ Signatures below are **illustrative pseudocode**; the real tools are MCP tools
 whose exact names and parameter names come from `tool_search`. Don't type these
 literally.
 
+Every call also takes the `project` key (omitted from the signatures below for
+brevity — pass it every time).
+
 | Tool | Use |
 |---|---|
-| `list_files()` | What's persisted? Returns paths, versions, modified times, tags. |
-| `read_file(path)` | Pull one file's content. |
-| `write_file(path, content)` | Create/overwrite a file (full-content, persist it). |
-| `delete_file(path)` | Trash a file. |
+| `list_files(project)` | What's persisted? Returns paths, versions, modified times, tags. |
+| `read_file(project, path)` | Pull one file's content. |
+| `write_file(project, path, content)` | Create/overwrite a file (full-content, persist it). |
+| `delete_file(project, path)` | Trash a file. |

@@ -45,17 +45,22 @@ system tag), so notes round-trip with the Simplenote apps.
 
 ## Model
 
-One Simplenote **note per file**, scoped by a project **tag**
-(`claude-project-<id>`) that isolates a project's notes from the rest of the
+One Simplenote **note per file**, scoped to a Claude.ai project by a **tag**
+(`claude-project-<key>`) that isolates that project's notes from the rest of the
 account. A file's `path` is the slug of its first-line heading
 (`# Design Notes` → `Design-Notes.md`).
 
+One connector serves the whole account, but Claude.ai sends no project id to a
+connector, so the `<key>` is supplied **in-band**: every tool takes a required
+`project` argument. Each project's `BOOTSTRAP.md` declares its key, and the
+assistant passes it on every call — that's what keeps projects separate.
+
 | Tool | Purpose |
 |---|---|
-| `list_files` | discover persisted files |
-| `read_file(path)` | pull one file |
-| `write_file(path, content)` | persist/overwrite a file |
-| `delete_file(path)` | trash a file |
+| `list_files(project)` | discover persisted files |
+| `read_file(project, path)` | pull one file |
+| `write_file(project, path, content)` | persist/overwrite a file |
+| `delete_file(project, path)` | trash a file |
 
 Single-user by design: one Simplenote account (token stored as a Worker secret);
 OAuth just gates access to you with a shared password.
@@ -81,7 +86,8 @@ pnpm exec wrangler login
 #    into wrangler.jsonc (kv_namespaces[0].id).
 pnpm exec wrangler kv namespace create OAUTH_KV
 
-# 3. (optional) set your project tag in wrangler.jsonc → vars.SIMPLENOTE_PROJECT_TAG
+# 3. (project scope is per-call, not configured here — each Claude.ai project
+#    sets its own key in BOOTSTRAP.md; nothing to set in wrangler.jsonc.)
 
 # 4. Set secrets (not in any file):
 pnpm exec wrangler secret put SIMPLENOTE_TOKEN     # your Simperium token

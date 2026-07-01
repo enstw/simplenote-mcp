@@ -63,8 +63,12 @@ problem" section is the canonical write-up.
 ## Architecture
 
 OAuth fronts everything; the MCP server is a Durable Object; Simplenote is the
-store. One note per file, scoped by a project **tag** (`claude-project-<id>`).
-A file's `path` is the slug of its first-line heading.
+store. One note per file, scoped to a Claude.ai project by a **tag**
+(`claude-project-<key>`). Claude.ai sends no project id to a connector, so the
+`key` is supplied **in-band**: every tool takes a required `project` argument
+(sourced from that project's `BOOTSTRAP.md`). One shared connector therefore
+serves the whole account with per-project isolation. A file's `path` is the slug
+of its first-line heading.
 
 - `src/index.ts` — `OAuthProvider` from `@cloudflare/workers-oauth-provider`.
   `apiRoute: "/mcp"` → `SimplenoteMCP.serve("/mcp")` (Streamable HTTP);
@@ -72,7 +76,10 @@ A file's `path` is the slug of its first-line heading.
   (OAuth 2.1 + dynamic client registration, which is what Claude.ai requires).
 - `src/mcp.ts` — `SimplenoteMCP extends McpAgent<Env>` (from `agents/mcp`) with
   an `McpServer`; `init()` registers `list_files` / `read_file` / `write_file` /
-  `delete_file`. Reads `this.env.SIMPLENOTE_TOKEN` / `SIMPLENOTE_PROJECT_TAG`.
+  `delete_file`, each taking a required `project` key. `projectTag()` validates
+  the key and composes `claude-project-<key>`; a missing/invalid key returns a
+  tool error rather than pooling into a shared store. Reads
+  `this.env.SIMPLENOTE_TOKEN`.
 - `src/store.ts` — `SimplenoteStore`: file↔note mapping, tag scoping. Port of
   `python/simplenote_mcp/store.py`. **Stateless**: the path→note index is rebuilt
   from the live note list each call (each MCP request may hit a fresh DO).
@@ -81,14 +88,21 @@ A file's `path` is the slug of its first-line heading.
   password form; on a correct `ACCESS_PASSWORD` it calls
   `env.OAUTH_PROVIDER.completeAuthorization(...)`. No per-user props — the
   Simplenote token is a Worker secret.
-- `src/types.ts` — the `Env` bindings/secrets/vars.
+- `src/types.ts` — the `Env` bindings/secrets (no scope var; scope is in-band).
 - `wrangler.jsonc` — DO binding `MCP_OBJECT` + **SQLite** migration (free-plan
-  compatible), KV `OAUTH_KV`, var `SIMPLENOTE_PROJECT_TAG`.
+  compatible), KV `OAUTH_KV`. No scope var — the project key is per-call.
 
 ### Non-obvious decisions
 
 - **Single-user.** One Simplenote account; token + access password are Worker
   secrets (`wrangler secret put`). OAuth only gates access to the owner.
+- **Per-project scope is in-band, not server-side.** Claude.ai passes no project
+  id (and one shared connector has one OAuth client id across all projects), so
+  isolation rides on the `project` key each call carries, set per project in its
+  `BOOTSTRAP.md`. This is an organizational boundary within one account, not a
+  security one — the key is agent-supplied and discoverable. The key is
+  *required*: a missing one errors instead of silently sharing a bucket (the bug
+  this replaced, where a static `SIMPLENOTE_PROJECT_TAG` pooled every project).
 - **Last-writer-wins.** `writeFile` re-fetches the latest version right before
   `write` — no interactive merge (matches `sn`).
 - **The heading owns the path.** Writing content whose first line differs from
@@ -106,8 +120,9 @@ A file's `path` is the slug of its first-line heading.
 `pnpm exec wrangler kv namespace create OAUTH_KV` → paste id into `wrangler.jsonc`;
 `pnpm exec wrangler secret put SIMPLENOTE_TOKEN` + `ACCESS_PASSWORD`; `pnpm run
 deploy`; in Claude.ai add a custom connector at `…workers.dev/mcp` and enter the
-access password; add `BOOTSTRAP.md` to the project. Requires a Claude plan with
-custom connectors (Max/Team/Enterprise).
+access password; add `BOOTSTRAP.md` to each project and set its **Project key**
+to a unique slug (this is what scopes the project's notes). Requires a Claude
+plan with custom connectors (Max/Team/Enterprise).
 
 ## Verification status
 

@@ -16,9 +16,9 @@
   // Create with: npx wrangler kv namespace create OAUTH_KV  → paste the id below.
   "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "9a72fa50acd24e75a86b71f1bffdc439" }],
 
-  // Non-secret config. SIMPLENOTE_TOKEN and ACCESS_PASSWORD are set as secrets
-  // (wrangler secret put …), never here.
-  "vars": { "SIMPLENOTE_PROJECT_TAG": "claude-project-default" },
+  // No scope var: each Claude.ai project's tag (claude-project-<key>) is supplied
+  // in-band via the tools' `project` arg. SIMPLENOTE_TOKEN and ACCESS_PASSWORD are
+  // set as secrets (wrangler secret put …), never here.
 
   "observability": { "enabled": true }
 }

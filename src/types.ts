@@ -14,7 +14,6 @@ export interface Env {
   /** Shared password that gates the OAuth login (single-user access). */
   ACCESS_PASSWORD: string;
 
-  // Vars (wrangler.jsonc)
-  /** Tag scoping which notes belong to this project, e.g. claude-project-research. */
-  SIMPLENOTE_PROJECT_TAG: string;
+  // Per-project scope is supplied in-band via each tool's `project` arg (there
+  // is no server-side project signal), so no scope var is bound here.
 }
